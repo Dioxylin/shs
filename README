@@ -1,0 +1,177 @@
+Stack Shell
+-----------
+
+A shell based on very little knowledge of FORTH.
+
+
+Examples
+--------
+
+Showing the current stack
+	
+	> .s #nothing
+	
+	> 1 2 3 .s
+	1 2 3
+	> .s
+	1 2 3
+	> .
+	3
+	> .s
+	1 2
+	> drop drop .
+	ERROR: Stack underflow.
+
+Stack manipulation
+	> 1 2 3 dup .s # duplicates top item
+	1 2 3 3
+	> dropall .s # drops everything on the stack
+
+	> 1 2 3 drop .s dropall # drop first item on stack
+	1 2
+	> 1 2 3 . # prints top item on the stack and drops it
+	3
+	> .s
+	1 2
+	> dropall
+	> 1 2 3 swap .s dropall # swaps 1st two items
+	1 3 2
+	> 1 2 3 rot .s dropall # rotate 3rd item to top
+	2 3 1
+	> 1 2 3 over .s dropall # pick 2nd stack member
+	1 2 3 2
+	> 1 2 3 3 pick .s dropall # pick nth stack member
+	1 2 3 1
+
+	(these words take place immediately)
+
+Assign variable:
+
+	12 num !
+
+	(immediate)
+
+Reference variable:
+
+	num $
+
+	or
+
+	$num
+
+	(use of $ as separate word allows multiple dereferencing)
+
+	(immediate)
+
+Running program example:
+
+	prog.c prog -o gcc ; .s
+
+	or
+
+	, ; gcc -o binary binary.c
+
+	or
+
+	, binary.c , binary -o gcc ;
+
+	or
+
+	, binary.c binary , -o gcc ;
+
+	(, reverses tokened parse direction, so 2 1 + becomes + 1 2)
+
+	(; attempts to execute what is currently on the stack, otherwise it
+	just pushes a word on the stack and never tries to execute anything in
+	$path)
+
+Piping
+
+	-iR less | new old -u diff ;
+
+	or
+
+	, ; diff -u old new | less -iR
+
+	or
+
+	less 2 |& /file/not/exist ls ; # redirect stderr to less
+
+Redirection
+
+	1 2> /file/not/exist ls ; # Redirects stderr to stdout then runs ls
+
+	2 1> 1 2> /file/not/exist ls ; # Swaps stderr and stdout then runs ls
+
+	(There are problems with this.  Hmm...  What about:)
+
+	>[2=1] /file/not/exist ls ;
+
+	>[2=1] >[1=2] /file/not/exist ls ;
+
+	or
+
+	&2 &1 > /file/not/exist ls ;
+
+	&2 &1 > &1 &2 > /file/not/exist ls ;
+
+Forking
+
+	& eth0 dhcpcd ;
+
+	, ; dhcpcd eth0 &
+
+	eth0 dhcpcd ;&
+
+	, ;& dhcpcd eth0
+	
+	(return value will NOT be on the stack; consult some other stack that's
+	to be determined)
+
+Concatenation on stack
+
+	> 3 2 1 ^ .s
+	3 21
+
+Return value
+
+	> prog.c prog -o gcc .s
+	0
+
+Output on stack:
+
+	> -l ls ` .s
+	'total 12...' 0
+	> -l ls ` drop .s
+	'total 12...'
+	> - ls ` drop echo
+	total 12
+	-rwxr-xr-x 1 dioxylin dioxylin 6760 Jul  9 05:45 hello
+	-rw-r--r-- 1 dioxylin dioxylin   73 Jul  9 05:45 hello.c
+
+	(return value on top, then string that is friendly-displayed; chops
+	nonprintable, newlines, and long lines, and shows only first line)
+
+Stacks in the stack:
+
+	> ( 1 2 3 ) .s
+	( 1 2 3 )
+	> dup .
+	( 1 2 3 )
+	> 4 ^^ dup .
+	( 1 2 3 4 )
+	> mystack !! .s
+
+	> mystack $ .
+	( 1 2 3 4 )
+	> 3 ( prog.c prog -o ) gcc ;; .s
+	3 0
+	> 1 ( -al ) ls `` .s
+	1 'total 12...' 0
+	
+	
+
+	(Stacks on the stack can be passed as args to the top item and executed
+	with ;;, which just pushes the return value on the stack. `` does the
+	same thing but pushes the output onto the stack as well before the
+	return value)
