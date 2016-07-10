@@ -8,19 +8,12 @@
 #define STACK_SLOTS 255
 #define BUFSIZE 255
 
-#define VARIABLE_LIST_SLOTS 255
-#define VARIABLE_LIST_BUFSIZE 255
-
 enum parse_state { NORMAL, SINGLE_QUOTE };
 
 /* The global stack */
 char STACK[STACK_SLOTS][BUFSIZE] = {'\0'};
 /* Points to the current operable item on stack.  On empty stack, -1. */
 int STACK_I = -1;
-
-/* internal variable stacks */
-char VARIABLE_NAME[VARIABLE_LIST_SLOTS][VARIABLE_LIST_BUFSIZE] = {'\0'};
-char VARIABLE_VALUE[VARIABLE_LIST_SLOTS][VARIABLE_LIST_BUFSIZE] = {'\0'};
 
 int num_stack_items()
 {
@@ -222,17 +215,12 @@ bool strisspace(char *str) {
 void get_variable()
 {
 	char name[BUFSIZE] = {'\0'};
-
 	strcpy(name, stack_pop());
-	if(name == NULL) return;
-
-	for (int i = 0; i < VARIABLE_LIST_SLOTS; ++i) {
-		if (strcmp(name, VARIABLE_NAME[i]) == 0) {
-			stack_push(VARIABLE_VALUE[i]);
-			return;
-		}
-	}
-	stack_push("()");
+	char *value = getenv(name);
+	if (value == NULL)
+		stack_push("()");
+	else
+		stack_push(value);
 }
 
 /* stack operation */
@@ -240,42 +228,16 @@ void set_variable()
 {
 	char name[BUFSIZE] = {'\0'};
 	char value[BUFSIZE] = {'\0'};
-
 	strcpy(name, stack_pop());
 	if (name == NULL) return;
 
 	strcpy(value, stack_pop());
 	if (value == NULL) return;
 
-	/* Unsetting a value */
-	if (strcmp(value, "()") == 0) {
-		for (int i = 0; i < VARIABLE_LIST_SLOTS; ++i) {
-			if (strcmp(name, VARIABLE_NAME[i]) == 0) {
-				VARIABLE_NAME[i][0] = '\0';
-				VARIABLE_VALUE[i][0] = '\0';
-				return;
-			}
-		}
-	}
-
-	/* First check if name exists. */
-	for (int i = 0; i < VARIABLE_LIST_SLOTS; ++i) {
-		if (strcmp(name, VARIABLE_NAME[i]) == 0) {
-			strcpy(VARIABLE_VALUE[i], value);
-			return;
-		}
-	}
-
-	/* Name doesn't exist, so fine first nonnull variable slot */
-	for (int i = 0; i < VARIABLE_LIST_SLOTS; ++i) {
-		if (VARIABLE_NAME[i][0] == '\0') {
-			strcpy(VARIABLE_NAME[i], name);
-			strcpy(VARIABLE_VALUE[i], value);
-			return;
-		}
-	}
-
-	fprintf(stderr, "%s:%d:%s(): Too many variables.  Hardcoded limit is %d\n", __FILE__,__LINE__,__func__,VARIABLE_LIST_SLOTS);
+	if (strcmp(value, "()") == 0)
+		unsetenv(name);
+	else
+		setenv(name, value, 1);
 }
 
 char *get_next_token(char *line, size_t line_size, int *start_from)
