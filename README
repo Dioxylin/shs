@@ -19,20 +19,24 @@ executable.
 Examples
 --------
 
+Comments
+	> # this won't be executed
+	> 
+
 Showing the current stack
 	
-	> .s #nothing
+	> .s # nothing
 	
 	> 1 2 3 .s
 	1 2 3
 	> .s
 	1 2 3
-	> .
+	> . # pops and prints top stack member
 	3
 	> .s
 	1 2
 	> .drop .drop .
-	ERROR: Stack underflow.
+	error: stack underflow.
 
 Stack manipulation
 	> 1 2 3 .dup .s # duplicates top item
