@@ -15,22 +15,30 @@ char STACK[STACK_SLOTS][BUFSIZE] = {'\0'};
 /* Points to the current operable item on stack.  On empty stack, -1. */
 int STACK_I = -1;
 
-int stack_push(char *word)
+int num_stack_items()
+{
+	int num_items = STACK_I+1;
+	if (num_items < 0) {
+		fprintf(stderr, "%s:%d:%s(): number of items is less than 0 for some reason.  this shouldn't happen.\n", __FILE__,__LINE__,__func__);
+		num_items = 0;
+	}
+	return num_items;
+}
+
+void stack_push(char *word)
 {
 	if (word == NULL) {
 		fprintf(stderr, "%s:%d:%s(): word is NULL.  Should not be.\n", __FILE__,__LINE__,__func__);
-		return -1;
+		return;
 	}
 	else if (STACK_I+1 > STACK_SLOTS) {
-		fprintf(stderr, "%s:%d:%s(): number of words on stack is greater than %d.  Please fix.\n", __FILE__,__LINE__,__func__,STACK_SLOTS);
-		return -1;
+		fprintf(stderr, "%s:%d:%s(): stack overflow error: number of words on stack would be greater than %d.\n", __FILE__,__LINE__,__func__,STACK_SLOTS);
+		return;
 	}
 
 	++STACK_I;
 	strncpy(STACK[STACK_I], word, BUFSIZE-2);
 	STACK[STACK_I][BUFSIZE-1] = '\0';
-
-	return 0;
 }
 
 /* stack_pop returns the address of its internal buffer.  If you use this
@@ -39,7 +47,7 @@ int stack_push(char *word)
  */
 char *stack_pop()
 {
-	if (STACK_I < 0) {
+	if (num_stack_items() == 0) {
 		fprintf(stderr, "%s:%d:%s(): stack underflow error.\n", __FILE__,__LINE__,__func__);
 		return NULL;
 	}
@@ -72,7 +80,7 @@ char *stack_peek()
 
 void stack_dropall()
 {
-	while (STACK_I >= 0) stack_pop();
+	while (num_stack_items() > 0) stack_pop();
 }
 
 bool strisdigit(char *str)
@@ -86,7 +94,7 @@ bool strisdigit(char *str)
 /* TODO: deduplicate stack_plus and stack_minus functions */
 void stack_plus()
 {
-	if (STACK_I - 1 < 0) {
+	if (num_stack_items() < 2) {
 		fprintf(stderr, "%s:%d:%s(): stack underflow error.\n", __FILE__,__LINE__,__func__);
 		return;
 	}
@@ -116,7 +124,7 @@ void stack_plus()
 
 void stack_minus()
 {
-	if (STACK_I - 1 < 0) {
+	if (num_stack_items() < 2) {
 		fprintf(stderr, "%s:%d:%s(): stack underflow error.\n", __FILE__,__LINE__,__func__);
 		return;
 	}
@@ -146,8 +154,7 @@ void stack_minus()
 
 void stack_swap()
 {
-	/* TODO: write function for num items on stack */
-	if (STACK_I - 1 < 0) {
+	if (num_stack_items() < 2) {
 		fprintf(stderr, "%s:%d:%s(): stack underflow error.\n", __FILE__,__LINE__,__func__);
 		return;
 	}
@@ -161,7 +168,7 @@ void stack_swap()
 
 void stack_dup()
 {
-	if (STACK_I < 0) {
+	if (num_stack_items() < 1) {
 		fprintf(stderr, "%s:%d:%s(): stack underflow error.\n", __FILE__,__LINE__,__func__);
 		return;
 	}
@@ -172,7 +179,7 @@ void stack_dup()
 
 void stack_over()
 {
-	if (STACK_I - 1 < 0) {
+	if (num_stack_items() < 2) {
 		fprintf(stderr, "%s:%d:%s(): stack underflow error.\n", __FILE__,__LINE__,__func__);
 		return;
 	}
@@ -185,7 +192,7 @@ void stack_over()
 
 void stack_rot()
 {
-	if (STACK_I - 2 < 0) {
+	if (num_stack_items() < 3) {
 		fprintf(stderr, "%s:%d:%s(): stack underflow error.\n", __FILE__,__LINE__,__func__);
 		return;
 	}
