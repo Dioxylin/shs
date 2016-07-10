@@ -8,12 +8,19 @@
 #define STACK_SLOTS 255
 #define BUFSIZE 255
 
+#define VARIABLE_LIST_SLOTS 255
+#define VARIABLE_LIST_BUFSIZE 255
+
 enum parse_state { NORMAL, SINGLE_QUOTE };
 
 /* The global stack */
 char STACK[STACK_SLOTS][BUFSIZE] = {'\0'};
 /* Points to the current operable item on stack.  On empty stack, -1. */
 int STACK_I = -1;
+
+/* internal variable stacks */
+char VARIABLE_NAME[VARIABLE_LIST_SLOTS][VARIABLE_LIST_BUFSIZE] = {'\0'};
+char VARIABLE_VALUE[VARIABLE_LIST_SLOTS][VARIABLE_LIST_BUFSIZE] = {'\0'};
 
 int num_stack_items()
 {
@@ -211,6 +218,66 @@ bool strisspace(char *str) {
 	return true;
 }
 
+/* stack operation */
+void get_variable()
+{
+	char name[BUFSIZE] = {'\0'};
+
+	strcpy(name, stack_pop());
+	if(name == NULL) return;
+
+	for (int i = 0; i < VARIABLE_LIST_SLOTS; ++i) {
+		if (strcmp(name, VARIABLE_NAME[i]) == 0) {
+			stack_push(VARIABLE_VALUE[i]);
+			return;
+		}
+	}
+	stack_push("()");
+}
+
+/* stack operation */
+void set_variable()
+{
+	char name[BUFSIZE] = {'\0'};
+	char value[BUFSIZE] = {'\0'};
+
+	strcpy(name, stack_pop());
+	if (name == NULL) return;
+
+	strcpy(value, stack_pop());
+	if (value == NULL) return;
+
+	/* Unsetting a value */
+	if (strcmp(value, "()") == 0) {
+		for (int i = 0; i < VARIABLE_LIST_SLOTS; ++i) {
+			if (strcmp(name, VARIABLE_NAME[i]) == 0) {
+				VARIABLE_NAME[i][0] = '\0';
+				VARIABLE_VALUE[i][0] = '\0';
+				return;
+			}
+		}
+	}
+
+	/* First check if name exists. */
+	for (int i = 0; i < VARIABLE_LIST_SLOTS; ++i) {
+		if (strcmp(name, VARIABLE_NAME[i]) == 0) {
+			strcpy(VARIABLE_VALUE[i], value);
+			return;
+		}
+	}
+
+	/* Name doesn't exist, so fine first nonnull variable slot */
+	for (int i = 0; i < VARIABLE_LIST_SLOTS; ++i) {
+		if (VARIABLE_NAME[i][0] == '\0') {
+			strcpy(VARIABLE_NAME[i], name);
+			strcpy(VARIABLE_VALUE[i], value);
+			return;
+		}
+	}
+
+	fprintf(stderr, "%s:%d:%s(): Too many variables.  Hardcoded limit is %d\n", __FILE__,__LINE__,__func__,VARIABLE_LIST_SLOTS);
+}
+
 char *get_next_token(char *line, size_t line_size, int *start_from)
 {
 	enum parse_state state = NORMAL;
@@ -232,7 +299,12 @@ char *get_next_token(char *line, size_t line_size, int *start_from)
 		return NULL;
 	}
 
-	if (line[i] == '\'') {
+	if (line[i] == '$' && line[i+1] == '\'') {
+		state = SINGLE_QUOTE;
+		word[word_i++] = line[i++];
+		word[word_i++] = line[i++];
+	}
+	else if (line[i] == '\'') {
 		state = SINGLE_QUOTE;
 		word[word_i++] = line[i++];
 	}
@@ -348,6 +420,27 @@ void program_loop()
 			else if (strcmp(token, ".-rot") == 0) {
 				stack_rot();
 				stack_rot();
+				continue;
+			}
+			else if (strcmp(token, "!") == 0) {
+				set_variable();
+				continue;
+			}
+			else if (strcmp(token, "$") == 0) {
+				get_variable();
+				continue;
+			}
+			else if (token[0] == '$' && token[1] == '$') {
+				fprintf(stderr, "error: variable name can't begin with $.\n");
+				continue;
+			}
+			else if (token[0] == '$') {
+				/* shift everything after $ over one */
+				for (int i = 0; i < BUFSIZE-1; ++i) {
+					token[i] = token[i+1];
+				}
+				stack_push(token);
+				get_variable();
 				continue;
 			}
 			else if (token[0] == '.' && strlen(token) > 1) {
