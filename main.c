@@ -3,6 +3,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <errno.h>
 
 /* TODO: We probably shouldn't hardcode lengths of these things... */
 #define STACK_SLOTS 255
@@ -72,8 +76,8 @@ void stack_show()
 
 char *stack_peek()
 {
+	if (num_stack_items() == 0) return NULL;
 	char *topval = stack_pop();
-	if (topval == NULL) return NULL;
 	stack_push(topval);
 	return topval;
 }
@@ -240,6 +244,71 @@ void set_variable()
 		setenv(name, value, 1);
 }
 
+/* Execute binary on the top of the stack with the rest of the stack as its
+ * arguments. */
+void stack_execute()
+{
+	if (num_stack_items() < 1) {
+		fprintf(stderr, "%s:%d:%s(): stack underflow error.\n", __FILE__,__LINE__,__func__);
+		return;
+	}
+
+	char prog[BUFSIZE] = {'\0'};;
+	char *args[STACK_SLOTS] = {'\0'};
+	for (int i = 0; i < STACK_SLOTS; ++i) {
+		args[i] = malloc(BUFSIZE);
+	}
+	strcpy(prog, stack_pop());
+	int wstatus;
+	int child_exit_status;
+	char child_exit_status_str[255];
+	int retval;
+	int i;
+
+	int pid = fork();
+	switch (pid) {
+		case 0:
+			/* Use entire stack for arguments now */
+			strcpy(args[0], prog);
+			for (i = 1; stack_peek() != NULL; ++i) {
+				strcpy(args[i], stack_pop());
+			}
+			free(args[i]);
+			args[i] = NULL;
+			retval = execvp((const char *)prog, (char * const *)args);
+			if (retval == -1) {
+				fprintf(stderr, "%s:%d:%s(): error starting %s: ", __FILE__,__LINE__,__func__, prog);
+				perror(NULL);
+			}
+			exit(1);
+			break;
+		case -1:
+			fprintf(stderr, "%s:%d:%s(): error starting prog %s.\n", __FILE__,__LINE__,__func__, prog);
+			break;
+
+		default: {
+				 int w = waitpid(pid, &wstatus, 0);
+				 if (w == -1 && errno != ECHILD) {
+					 perror("waitpid");
+				 }
+				 else if (WIFEXITED(wstatus)) {
+					 child_exit_status = WEXITSTATUS(wstatus);
+					 sprintf(child_exit_status_str, "%d", child_exit_status);
+					 stack_push(child_exit_status_str);
+				 }
+				 else {
+					 perror(NULL);
+					 fprintf(stderr, "%s:%d:%s(): error:prog %s has not exited.\n", __FILE__,__LINE__,__func__, prog);
+				 }
+				 break;
+			 }
+		
+	}
+	for (int i = 0; i < STACK_SLOTS; ++i) {
+		free(args[i]);
+	}
+}
+
 char *get_next_token(char *line, size_t line_size, int *start_from)
 {
 	enum parse_state state = NORMAL;
@@ -403,6 +472,10 @@ void program_loop()
 				}
 				stack_push(token);
 				get_variable();
+				continue;
+			}
+			else if (strcmp(token, ";") == 0) {
+				stack_execute();
 				continue;
 			}
 			else if (token[0] == '.' && strlen(token) > 1) {
