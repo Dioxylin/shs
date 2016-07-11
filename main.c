@@ -464,6 +464,15 @@ void program_loop()
 				fprintf(stderr, "error: variable name can't begin with $.\n");
 				continue;
 			}
+			else if (token[0] == '$' && token[1] == '.') {
+				/* Put literals in for stack operations. */
+				/* shift everything after $ over one */
+				for (int i = 0; i < BUFSIZE-1; ++i) {
+					token[i] = token[i+1];
+				}
+				stack_push(token);
+				continue;
+			}
 			else if (token[0] == '$') {
 				/* shift everything after $ over one */
 				for (int i = 0; i < BUFSIZE-1; ++i) {
@@ -478,7 +487,12 @@ void program_loop()
 				continue;
 			}
 			else if (token[0] == '.' && strlen(token) > 1) {
-				fprintf(stderr, "error: stack operation not found.\n");
+				/* shift everything after . over one */
+				for (int i = 0; i < BUFSIZE-1; ++i) {
+					token[i] = token[i+1];
+				}
+				stack_push(token);
+				stack_execute();
 				continue;
 			}
 			stack_push(token);
