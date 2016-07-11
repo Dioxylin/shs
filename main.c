@@ -77,9 +77,7 @@ void stack_show()
 char *stack_peek()
 {
 	if (num_stack_items() == 0) return NULL;
-	char *topval = stack_pop();
-	stack_push(topval);
-	return topval;
+	return STACK[STACK_I];
 }
 
 void stack_dropall()
@@ -265,16 +263,17 @@ void stack_execute()
 	int retval;
 	int i;
 
+	/* Use entire stack for arguments now */
+	strcpy(args[0], prog);
+	for (i = 1; stack_peek() != NULL; ++i) {
+		strcpy(args[i], stack_pop());
+	}
+	free(args[i]);
+	args[i] = NULL;
+
 	int pid = fork();
 	switch (pid) {
 		case 0:
-			/* Use entire stack for arguments now */
-			strcpy(args[0], prog);
-			for (i = 1; stack_peek() != NULL; ++i) {
-				strcpy(args[i], stack_pop());
-			}
-			free(args[i]);
-			args[i] = NULL;
 			retval = execvp((const char *)prog, (char * const *)args);
 			if (retval == -1) {
 				fprintf(stderr, "%s:%d:%s(): error starting %s: ", __FILE__,__LINE__,__func__, prog);
