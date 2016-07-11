@@ -12,6 +12,9 @@
 #define STACK_SLOTS 255
 #define BUFSIZE 255
 
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+
 enum parse_state { NORMAL, SINGLE_QUOTE };
 
 /* The global stack */
@@ -308,6 +311,24 @@ void stack_execute()
 	}
 }
 
+void stack_cd()
+{
+	if (num_stack_items() < 1) {
+		fprintf(stderr, "%s:%d:%s(): stack underflow error.\n", __FILE__,__LINE__,__func__);
+		stack_push("255");
+		return;
+	}
+	char *path = stack_pop();
+	int retval = chdir(path);
+	if (retval == -1) {
+		perror(NULL);
+		stack_push(TOSTRING(ENOENT));
+	}
+	else {
+		stack_push("0");
+	}
+}
+
 char *get_next_token(char *line, size_t line_size, int *start_from)
 {
 	enum parse_state state = NORMAL;
@@ -484,6 +505,10 @@ void program_loop()
 			}
 			else if (strcmp(token, ";") == 0) {
 				stack_execute();
+				continue;
+			}
+			else if (strcmp(token, ".cd") == 0) {
+				stack_cd();
 				continue;
 			}
 			else if (token[0] == '.' && strlen(token) > 1) {
