@@ -269,7 +269,7 @@ void stack_execute()
 	strcpy(prog, stack_pop());
 	int wstatus;
 	int child_exit_status;
-	char child_exit_status_str[255];
+	char child_exit_status_str[BUFSIZE];
 	int retval;
 	int i;
 
@@ -340,7 +340,7 @@ char *get_next_token(char *line, size_t line_size, int *start_from)
 {
 	enum parse_state state = NORMAL;
 	int i = *start_from;
-	static char word[255] = {'\0'};
+	static char word[BUFSIZE] = {'\0'};
 	int word_i = 0;
 
 	/* No further tokens */
