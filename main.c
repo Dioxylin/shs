@@ -24,12 +24,17 @@ char STACK[STACK_SLOTS][BUFSIZE] = {{'\0'}};
 /* Points to the current operable item on stack.  On empty stack, -1. */
 int STACK_I = -1;
 
+/* Gets number of items on the stack.
+ * 
+ * Will call abort() if number of items is determined to be < 0.
+ */
 int num_stack_items()
 {
 	int num_items = STACK_I+1;
 	if (num_items < 0) {
 		fprintf(stderr, "%s:%d:%s(): number of items is less than 0 for some reason.  this shouldn't happen.\n", __FILE__,__LINE__,__func__);
-		num_items = 0;
+		abort();
+		//num_items = 0;
 	}
 	return num_items;
 }
