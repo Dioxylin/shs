@@ -421,7 +421,7 @@ void program_loop()
 	char *token = NULL;
 
 	while(true) {
-		printf(" > ");
+		printf("%d > ", num_stack_items());
 		line_size = getline(&line, &line_size, stdin);
 		if (line_size == -1) break;
 
