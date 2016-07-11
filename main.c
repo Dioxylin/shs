@@ -1,3 +1,5 @@
+#define _WITH_GETLINE
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
@@ -18,7 +20,7 @@
 enum parse_state { NORMAL, SINGLE_QUOTE };
 
 /* The global stack */
-char STACK[STACK_SLOTS][BUFSIZE] = {'\0'};
+char STACK[STACK_SLOTS][BUFSIZE] = {{'\0'}};
 /* Points to the current operable item on stack.  On empty stack, -1. */
 int STACK_I = -1;
 
@@ -255,7 +257,7 @@ void stack_execute()
 	}
 
 	char prog[BUFSIZE] = {'\0'};;
-	char *args[STACK_SLOTS] = {'\0'};
+	char *args[STACK_SLOTS] = {NULL};
 	for (int i = 0; i < STACK_SLOTS; ++i) {
 		args[i] = malloc(BUFSIZE);
 	}
