@@ -77,6 +77,10 @@ char *stack_pop()
 		eprintf("stack underflow error");
 		return NULL;
 	}
+	else if (num_stack_items() < 0) {
+		eprintf("major error: stack has negative size.  aborting.");
+		abort();
+	}
 
 	return STACK[STACK_I--];
 }
@@ -204,6 +208,9 @@ void stack_swap()
 		eprintf("stack underflow error.");
 		return;
 	}
+	/* We need to copy string, otherwise we will overwrite what we want to
+	 * actually copy on stack_push() since the buffer in that function is
+	 * reused. */
 	char arg1[BUFSIZE] = {'\0'};
 	char arg2[BUFSIZE] = {'\0'};
 	strcpy(arg1, stack_pop());
