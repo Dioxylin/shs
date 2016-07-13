@@ -17,6 +17,17 @@
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 
+/* Error printf wrapper */
+#define eprintf(x,...) fprintf(stderr, "%s:%d:%s(): %s\n", __FILE__,__LINE__,__func__, x)
+
+/* Formatted error printf wrapper */
+#define feprintf(x, ...) do { \
+		char *str = malloc(BUFSIZE); \
+		snprintf(str, BUFSIZE, x, __VA_ARGS__); \
+		eprintf(str); \
+		free(str); \
+		}while(false)
+
 enum parse_state { NORMAL, SINGLE_QUOTE };
 
 /* The global stack */
@@ -32,7 +43,7 @@ int num_stack_items()
 {
 	int num_items = STACK_I+1;
 	if (num_items < 0) {
-		fprintf(stderr, "%s:%d:%s(): number of items is less than 0 for some reason.  this shouldn't happen.\n", __FILE__,__LINE__,__func__);
+		eprintf("number of items is less than 0 for some reason.  this shouldn't happen.  aborting.\n");
 		abort();
 		//num_items = 0;
 	}
@@ -42,11 +53,11 @@ int num_stack_items()
 void stack_push(char *word)
 {
 	if (word == NULL) {
-		fprintf(stderr, "%s:%d:%s(): word is NULL.  Should not be.\n", __FILE__,__LINE__,__func__);
+		eprintf("word is NULL.  Should not be.");
 		return;
 	}
 	else if (STACK_I+1 > STACK_SLOTS) {
-		fprintf(stderr, "%s:%d:%s(): stack overflow error: number of words on stack would be greater than %d.\n", __FILE__,__LINE__,__func__,STACK_SLOTS);
+		feprintf("stack overflow error: number of words on stack would be greater than %d.", STACK_SLOTS);
 		return;
 	}
 
@@ -62,7 +73,7 @@ void stack_push(char *word)
 char *stack_pop()
 {
 	if (num_stack_items() == 0) {
-		fprintf(stderr, "%s:%d:%s(): stack underflow error.\n", __FILE__,__LINE__,__func__);
+		eprintf("stack underflow error");
 		return NULL;
 	}
 
@@ -107,7 +118,7 @@ bool strisdigit(char *str)
 void stack_plus()
 {
 	if (num_stack_items() < 2) {
-		fprintf(stderr, "%s:%d:%s(): stack underflow error.\n", __FILE__,__LINE__,__func__);
+		eprintf("stack underflow error.");
 		return;
 	}
 
@@ -115,7 +126,7 @@ void stack_plus()
 	char *arg2 = STACK[STACK_I];
 
 	if (!( strisdigit(arg1) && strisdigit(arg2) )) {
-		fprintf(stderr, "%s:%d:%s(): type error with given arguments: %s,%s.\n", __FILE__,__LINE__,__func__,arg1,arg2);
+		feprintf("type error with given arguments: %s,%s.", arg1, arg2);
 		return;
 	}
 
@@ -137,7 +148,7 @@ void stack_plus()
 void stack_minus()
 {
 	if (num_stack_items() < 2) {
-		fprintf(stderr, "%s:%d:%s(): stack underflow error.\n", __FILE__,__LINE__,__func__);
+		eprintf("stack underflow error.");
 		return;
 	}
 
@@ -145,7 +156,7 @@ void stack_minus()
 	char *arg2 = STACK[STACK_I];
 
 	if (!( strisdigit(arg1) && strisdigit(arg2) )) {
-		fprintf(stderr, "%s:%d:%s(): type error with given arguments: %s,%s.\n", __FILE__,__LINE__,__func__,arg1,arg2);
+		feprintf("type error with given arguments: %s,%s.", arg1, arg2);
 		return;
 	}
 
@@ -167,7 +178,7 @@ void stack_minus()
 void stack_swap()
 {
 	if (num_stack_items() < 2) {
-		fprintf(stderr, "%s:%d:%s(): stack underflow error.\n", __FILE__,__LINE__,__func__);
+		eprintf("stack underflow error.");
 		return;
 	}
 	char arg1[BUFSIZE] = {'\0'};
@@ -181,7 +192,7 @@ void stack_swap()
 void stack_dup()
 {
 	if (num_stack_items() < 1) {
-		fprintf(stderr, "%s:%d:%s(): stack underflow error.\n", __FILE__,__LINE__,__func__);
+		eprintf("stack underflow error.");
 		return;
 	}
 
@@ -192,7 +203,7 @@ void stack_dup()
 void stack_over()
 {
 	if (num_stack_items() < 2) {
-		fprintf(stderr, "%s:%d:%s(): stack underflow error.\n", __FILE__,__LINE__,__func__);
+		eprintf("stack underflow error.");
 		return;
 	}
 
@@ -205,7 +216,7 @@ void stack_over()
 void stack_rot()
 {
 	if (num_stack_items() < 3) {
-		fprintf(stderr, "%s:%d:%s(): stack underflow error.\n", __FILE__,__LINE__,__func__);
+		eprintf("stack underflow error.");
 		return;
 	}
 
@@ -257,7 +268,7 @@ void set_variable()
 void stack_execute()
 {
 	if (num_stack_items() < 1) {
-		fprintf(stderr, "%s:%d:%s(): stack underflow error.\n", __FILE__,__LINE__,__func__);
+		eprintf("stack underflow error.");
 		return;
 	}
 
@@ -286,13 +297,13 @@ void stack_execute()
 		case 0:
 			retval = execvp((const char *)prog, (char * const *)args);
 			if (retval == -1) {
-				fprintf(stderr, "%s:%d:%s(): error starting %s: ", __FILE__,__LINE__,__func__, prog);
+				feprintf("error starting %s: ", prog);
 				perror(NULL);
 			}
 			exit(1);
 			break;
 		case -1:
-			fprintf(stderr, "%s:%d:%s(): error starting prog %s.\n", __FILE__,__LINE__,__func__, prog);
+			feprintf("error starting prog %s.", prog);
 			break;
 
 		default: {
@@ -307,7 +318,7 @@ void stack_execute()
 				 }
 				 else {
 					 perror(NULL);
-					 fprintf(stderr, "%s:%d:%s(): error:prog %s has not exited.\n", __FILE__,__LINE__,__func__, prog);
+					 feprintf("error:prog %s has not exited.", prog);
 				 }
 				 break;
 			 }
@@ -321,7 +332,7 @@ void stack_execute()
 void stack_cd()
 {
 	if (num_stack_items() < 1) {
-		fprintf(stderr, "%s:%d:%s(): stack underflow error.\n", __FILE__,__LINE__,__func__);
+		eprintf("stack underflow error.");
 		stack_push("255");
 		return;
 	}
@@ -386,13 +397,13 @@ char *get_next_token(char *line, size_t line_size, int *start_from)
 			++word_i;
 		}
 		if (i >= line_size) {
-			fprintf(stderr, "Input ended unexpectedly\n");
+			eprintf("Input ended unexpectedly\n");
 			return NULL;
 		}
 		++i; /* Increment one last time to get to possible whitespace */
 
 		if (!isspace(line[i])) {
-			fprintf(stderr, "Input after quote is not whitespace.\n");
+			eprintf("Input after quote is not whitespace.\n");
 			return NULL;
 		}
 	}
@@ -489,7 +500,7 @@ void program_loop()
 				continue;
 			}
 			else if (token[0] == '$' && token[1] == '$') {
-				fprintf(stderr, "error: variable name can't begin with $.\n");
+				eprintf("error: variable name can't begin with $.\n");
 				continue;
 			}
 			else if (token[0] == '$' && token[1] == '.') {
