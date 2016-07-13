@@ -119,7 +119,10 @@ bool strisdigit(char *str)
 	return true;
 }
 
-/* Gets a possible int on the stack. */
+/* Gets a possible int on the stack.
+ *
+ * KLUDGE: I don't think I should sanitize here.  Perhaps I should sanitize
+ * somewhere prior to this call. */
 int get_stack_int(bool *success)
 {
 	if (success == NULL) {
