@@ -56,7 +56,7 @@ void stack_push(char *word)
 		eprintf("word is NULL.  Should not be.");
 		return;
 	}
-	else if (STACK_I+1 > STACK_SLOTS) {
+	else if (num_stack_items()+1 > STACK_SLOTS) {
 		feprintf("stack overflow error: number of words on stack would be greater than %d.", STACK_SLOTS);
 		return;
 	}
