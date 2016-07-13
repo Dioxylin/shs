@@ -122,16 +122,13 @@ void stack_plus()
 		return;
 	}
 
-	char *arg1 = STACK[STACK_I-1];
-	char *arg2 = STACK[STACK_I];
+	char *arg1 = stack_pop();
+	char *arg2 = stack_pop();
 
 	if (!( strisdigit(arg1) && strisdigit(arg2) )) {
 		feprintf("type error with given arguments: %s,%s.", arg1, arg2);
 		return;
 	}
-
-	stack_pop();
-	stack_pop();
 
 	int arg1_converted;
 	int arg2_converted;
@@ -152,16 +149,13 @@ void stack_minus()
 		return;
 	}
 
-	char *arg1 = STACK[STACK_I-1];
-	char *arg2 = STACK[STACK_I];
+	char *arg1 = stack_pop();
+	char *arg2 = stack_pop();
 
 	if (!( strisdigit(arg1) && strisdigit(arg2) )) {
 		feprintf("type error with given arguments: %s,%s.", arg1, arg2);
 		return;
 	}
-
-	stack_pop();
-	stack_pop();
 
 	int arg1_converted;
 	int arg2_converted;
