@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <limits.h>
 
 /* TODO: We probably shouldn't hardcode lengths of these things... */
 #define STACK_SLOTS 255
@@ -114,7 +115,47 @@ bool strisdigit(char *str)
 	return true;
 }
 
-/* TODO: deduplicate stack_plus and stack_minus functions */
+/* Gets a possible int on the stack. */
+int get_stack_int(bool *success)
+{
+	if (success == NULL) {
+		eprintf("programmer error: null success attribute.");
+		abort();
+	}
+
+	if (num_stack_items() < 1) {
+		eprintf("stack underflow error.");
+		*success = false;
+		return INT_MIN;
+	}
+	char *arg = stack_pop();
+
+	if (!strisdigit(arg)) {
+		feprintf("type error with given argument: %s.", arg);
+		*success = false;
+		return INT_MIN;
+	}
+
+	int arg_converted;
+
+	sscanf(arg, "%d", &arg_converted);
+
+	*success = true;
+
+	return arg_converted;
+}
+
+/* Pushes given int onto stack. */
+void push_stack_int(int arg)
+{
+	char retval[BUFSIZE] = {'\0'};
+	snprintf(retval, BUFSIZE-2, "%d", arg);
+	/* Don't need to terminate BUFSIZE-1 since we nulled original buffer. */
+	stack_push(retval);
+}
+
+/* Okay, I deduplicated stack_plus and stack_minus, but they still feel bad to
+ * me. */
 void stack_plus()
 {
 	if (num_stack_items() < 2) {
@@ -122,24 +163,18 @@ void stack_plus()
 		return;
 	}
 
-	char *arg1 = stack_pop();
-	char *arg2 = stack_pop();
+	bool arg1_success;
+	bool arg2_success;
 
-	if (!( strisdigit(arg1) && strisdigit(arg2) )) {
-		feprintf("type error with given arguments: %s,%s.", arg1, arg2);
+	int arg1 = get_stack_int(&arg1_success);
+	int arg2 = get_stack_int(&arg2_success);
+
+	/* Error is handled and printed in get_stack_int */
+	if (!arg1_success || !arg2_success) {
 		return;
 	}
 
-	int arg1_converted;
-	int arg2_converted;
-
-	sscanf(arg1, "%d", &arg1_converted);
-	sscanf(arg2, "%d", &arg2_converted);
-	
-	char retval[BUFSIZE] = {'\0'};
-	snprintf(retval, BUFSIZE-2, "%d", arg1_converted + arg2_converted);
-	retval[BUFSIZE-1] = '\0';
-	stack_push(retval);
+	push_stack_int(arg2 + arg1);
 }
 
 void stack_minus()
@@ -149,24 +184,18 @@ void stack_minus()
 		return;
 	}
 
-	char *arg1 = stack_pop();
-	char *arg2 = stack_pop();
+	bool arg1_success;
+	bool arg2_success;
 
-	if (!( strisdigit(arg1) && strisdigit(arg2) )) {
-		feprintf("type error with given arguments: %s,%s.", arg1, arg2);
+	int arg1 = get_stack_int(&arg1_success);
+	int arg2 = get_stack_int(&arg2_success);
+
+	/* Error is handled and printed in get_stack_int */
+	if (!arg1_success || !arg2_success) {
 		return;
 	}
 
-	int arg1_converted;
-	int arg2_converted;
-
-	sscanf(arg1, "%d", &arg1_converted);
-	sscanf(arg2, "%d", &arg2_converted);
-	
-	char retval[BUFSIZE] = {'\0'};
-	snprintf(retval, BUFSIZE-2, "%d", arg1_converted - arg2_converted);
-	retval[BUFSIZE-1] = '\0';
-	stack_push(retval);
+	push_stack_int(arg2 - arg1);
 }
 
 void stack_swap()
